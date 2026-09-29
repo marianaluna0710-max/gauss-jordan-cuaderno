@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<!--
+  Gauss-Jordan — cuaderno de procedimiento
+  Autoras: Mariana Quiñones Muñoz y Manuela Tamayo Aristizábal
+  Universidad Autónoma de Occidente (UAO)
+
+  Código abierto bajo licencia MIT — ver LICENSE en el repositorio.
+  Ver README.md para una guía de la estructura del código.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gauss-Jordan — cuaderno de procedimiento</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --panel-2:#f0f2f5; --border:#d8dce3;
+    --text:#1b1f27; --muted:#606a7b; --accent:#2f8f83; --accent-soft:#d8f0eb;
+    --cell:#ffffff; --cell-b:#e6e9ef; --indep:#eaf4f2; --danger:#b3261e; --line2:#c9761f; --scroll-thumb:#cfd4db;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14171c; --panel:#1b1f26; --panel-2:#22272f; --border:#2e343d;
+      --text:#e7ebf0; --muted:#98a2b3; --accent:#62c9ba; --accent-soft:#1d3a38;
+      --cell:#232830; --cell-b:#333a44; --indep:#1e2e2c; --danger:#f2857c; --line2:#f0a94e; --scroll-thumb:#39414b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171c; --panel:#1b1f26; --panel-2:#22272f; --border:#2e343d;
+    --text:#e7ebf0; --muted:#98a2b3; --accent:#62c9ba; --accent-soft:#1d3a38;
+    --cell:#232830; --cell-b:#333a44; --indep:#1e2e2c; --danger:#f2857c; --line2:#f0a94e; --scroll-thumb:#39414b;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55;
+  }
+  header{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:22px 28px; border-bottom:1px solid var(--border); background:var(--panel);
+  }
+  .logo{
+    height:34px; width:auto;
+  }
+  .brand{display:flex;align-items:center;gap:10px}
+  .title-block{text-align:right}
+  header h1{margin:0;font-size:1.35rem;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:.9rem}
+  .spacer{flex:1}
+  .credits{
+    color:var(--muted); font-size:.72rem; line-height:1.35;
+  }
+  .icon-btn{
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:17px;
+  }
+  main{
+    display:grid; grid-template-columns:minmax(340px,420px) 1fr; gap:26px;
+    padding:26px; align-items:start; max-width:1400px; margin:0 auto;
+  }
+  /* Evita que el contenido ancho estire la página hacia los lados */
+  main > *{min-width:0}
+  @media (max-width:900px){ main{grid-template-columns:1fr; padding:16px} }
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px}
+  .dims{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  label{display:block;font-size:.85rem;font-weight:600;margin-bottom:6px}
+  label small{display:block;font-weight:400;color:var(--muted);font-size:.75rem}
+  input[type=number],.cell{
+    background:var(--cell);border:1px solid var(--cell-b);color:var(--text);
+    border-radius:8px;padding:9px 10px;font-family:var(--mono);font-size:.95rem;width:88px;
+  }
+  .cell{width:100%;text-align:center}
+  .cell:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .cell.indep{background:var(--indep)}
+  button{
+    font:inherit;cursor:pointer;border-radius:9px;padding:10px 16px;
+    border:1px solid var(--border);background:var(--panel-2);color:var(--text);
+  }
+  button.primary{background:var(--accent);color:#06231f;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .grid-wrap{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:16px 14px;margin:14px 0;overflow-x:auto;
+    scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) transparent}
+  .grid-wrap::-webkit-scrollbar{height:6px}
+  .grid-wrap::-webkit-scrollbar-track{background:transparent}
+  .grid-wrap::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border-radius:8px}
+  .grid-wrap::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+  .graph-panel{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin:0 0 14px}
+  .graph-panel h3{margin:0 0 10px;font-size:.95rem;color:var(--text)}
+  .graph-panel svg{width:100%;height:auto;display:block;background:var(--panel);border-radius:8px}
+  .graph-legend{display:flex;gap:16px;margin-top:8px;font-size:.8rem;color:var(--muted)}
+  .graph-legend span{display:inline-flex;align-items:center;gap:5px}
+  .graph-legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .graph-verdict{margin:10px 0 0;font-size:.88rem;font-weight:600}
+  .graph-verdict.ok{color:var(--accent)}
+  .graph-verdict.warn{color:#c98a1f}
+  .graph-verdict.err{color:var(--danger)}
+  .graph-zoom-hint{margin:6px 0 0;font-size:.75rem;color:var(--muted)}
+  #graphSvg svg{cursor:zoom-in}
+  #graphSvg svg:hover{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+  /* --- modal de zoom para la gráfica --- */
+  .graph-modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.65);
+    z-index:1000; align-items:center; justify-content:center; padding:20px;
+  }
+  .graph-modal-backdrop.open{display:flex}
+  .graph-modal-box{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    width:min(720px,100%); max-height:90vh; display:flex; flex-direction:column; overflow:hidden;
+  }
+  .graph-modal-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; border-bottom:1px solid var(--border); color:var(--text); font-weight:600; font-size:.9rem;
+  }
+  .graph-modal-controls{display:flex; gap:6px}
+  .graph-modal-controls button{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:5px 10px; cursor:pointer; font-size:.85rem; min-width:34px;
+  }
+  .graph-modal-controls button:hover{background:var(--indep)}
+  .graph-modal-viewport{
+    flex:1; overflow:hidden; cursor:grab; touch-action:none; background:var(--panel);
+    display:flex; align-items:center; justify-content:center; min-height:320px;
+  }
+  .graph-modal-viewport.dragging{cursor:grabbing}
+  .graph-modal-inner{width:560px; height:560px; transform-origin:center center; will-change:transform}
+  .graph-modal-inner svg{width:100%; height:100%; display:block; cursor:default}
+  .graph-modal-tip{margin:0; padding:8px 16px; font-size:.75rem; color:var(--muted); text-align:center; border-top:1px solid var(--border)}
+  .eqsys{display:flex;align-items:center;gap:10px;width:max-content}
+  .eqsys .brace{font-family:serif;line-height:1;color:var(--text);transform:scaleX(.8);flex-shrink:0}
+  .eqsys-rows{display:flex;flex-direction:column;gap:10px}
+  .eqrow{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+  .eqrow .cell{width:48px;flex-shrink:0}
+  .eqrow .var{font-style:italic;font-family:var(--mono);margin-right:1px;color:var(--text)}
+  .eqrow .op{color:var(--muted);font-weight:600;margin:0 1px}
+  .eqrow .eq-sign{color:var(--text);font-weight:700;margin:0 6px}
+  .grid{display:grid;gap:8px}
+
+  /* --- entrada como sistema de ecuaciones (x, y, z...) --- */
+  .eq-wrap{display:flex;align-items:center;gap:10px}
+  .eq-wrap .brace{font-family:serif;line-height:1;color:var(--text);transform:scaleX(.75);flex-shrink:0}
+  .eq-rows{display:flex;flex-direction:column;gap:10px}
+  .eq-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .eq-row .cell{width:56px;flex-shrink:0}
+  .eq-row .varlabel{font-family:var(--mono);font-size:1rem;color:var(--text);min-width:12px}
+  .eq-row .op{color:var(--muted);margin:0 2px;font-family:var(--mono)}
+  .eq-row .eqsign{color:var(--text);font-weight:600;margin:0 6px;font-family:var(--mono)}
+  .hint{color:var(--muted);font-size:.8rem;margin:10px 0 14px}
+  .hint code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-family:var(--mono)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  details summary{cursor:pointer;color:var(--accent);font-size:.9rem;margin-top:14px}
+  .examples{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .examples button{text-align:left;font-size:.85rem}
+
+  .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .counter{font-size:.9rem;color:var(--muted);min-width:110px;text-align:center}
+  .chk{display:flex;align-items:center;gap:7px;font-size:.88rem;color:var(--muted);cursor:pointer}
+
+  .step{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+  .step .tag{font-size:.78rem;font-weight:700;color:var(--accent);text-transform:none;letter-spacing:.02em}
+  .step .desc{color:var(--muted);font-size:.9rem;margin-top:12px}
+  .ops{font-family:var(--mono);font-size:.85rem;color:var(--text);margin:10px 0 0;padding-left:0;list-style:none}
+  .ops li{padding:3px 0}
+
+  .matrix{display:flex;justify-content:center;margin:18px 0 4px}
+  table.m{border-collapse:collapse;font-family:var(--mono);font-size:1.02rem}
+  table.m td{padding:6px 14px;text-align:center;min-width:34px}
+  table.m td.bar{border-left:1px solid var(--muted);}
+  .brk{width:10px;border-top:2px solid var(--text);border-bottom:2px solid var(--text);align-self:stretch}
+  .brk.l{border-left:2px solid var(--text);border-radius:3px 0 0 3px}
+  .brk.r{border-right:2px solid var(--text);border-radius:0 3px 3px 0}
+  .pivot{color:var(--accent);font-weight:700}
+
+  h2{font-size:1.1rem;margin:26px 0 12px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--accent-soft);
+    color:var(--accent);font-size:.8rem;font-weight:600;margin-bottom:10px}
+  .sol{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 22px}
+  .sol ul{list-style:none;padding:0;margin:0;font-family:var(--mono);font-size:1rem}
+  .sol li{padding:4px 0}
+  .err{color:var(--danger);font-size:.9rem;margin-top:10px}
+
+  /* --- sistema entre llaves y vector solución --- */
+  .sysbrace, .genvec{display:flex;align-items:center;gap:8px}
+  .sysbrace .brace, .genvec .brace{
+    font-family:serif; line-height:1; color:var(--text); transform:scaleX(.8);
+  }
+  .sysbrace .eqs, .genvec .eqs{
+    display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:1rem;
+  }
+  .sysbrace .eqnum{color:var(--muted);font-size:.85rem;margin-left:6px}
+  .genvec-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:1.05rem;margin:8px 0}
+
+  h3.sub-h{font-size:1rem;margin:20px 0 10px;color:var(--text)}
+  ul.expl{list-style:none;padding:0;margin:14px 0;display:flex;flex-direction:column;gap:10px}
+  ul.expl li{font-size:.92rem;color:var(--muted)}
+  ul.expl .eqline{font-family:var(--mono);color:var(--text);margin-top:3px;font-size:1rem}
+  .answer-grid{display:flex;flex-direction:column;gap:8px}
+  .answer-box{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:10px 14px;font-family:var(--mono);font-size:1rem;
+  }
+  .rank-note{color:var(--muted);font-size:.85rem;margin-top:16px}
+  footer{color:var(--muted);font-size:.8rem;text-align:center;padding:20px}
+  /* En celular: casillas un poco más pequeñas para que el sistema quepa completo */
+  @media (max-width:640px){
+    header{padding:16px}
+    .panel{padding:16px}
+    .grid-wrap{padding:12px 10px}
+    .eqrow{gap:2px}
+    .eqrow .cell{width:38px;padding:7px 2px;font-size:.88rem}
+    .eqrow .eq-sign{margin:0 3px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <img class="logo" src="data:image/png;base64,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" alt="Logo UAO">
+    <div class="credits">Mariana Quiñones Muñoz<br>Manuela Tamayo Aristizábal</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="title-block">
+    <h1>Gauss-Jordan</h1>
+    <p>cuaderno de procedimiento</p>
+  </div>
+  <button class="icon-btn" id="theme" title="Cambiar tema">☀</button>
+</header>
+
+<main>
+  <!-- ============ PANEL IZQUIERDO ============ -->
+  <section class="panel">
+    <div class="dims">
+      <div>
+        <label for="rows">Ecuaciones</label>
+        <input type="number" id="rows" min="1" max="8" value="3">
+      </div>
+      <div>
+        <label for="cols">Incógnitas</label>
+        <input type="number" id="cols" min="1" max="8" value="3">
+      </div>
+    </div>
+    <button id="gen">Generar cuadrícula</button>
+
+    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+
+    <div class="graph-panel" id="graphPanel" style="display:none">
+      <h3>Gráfica del sistema (2×2)</h3>
+      <div id="graphSvg"></div>
+      <p class="graph-verdict" id="graphVerdict"></p>
+      <p class="graph-zoom-hint">🔍 Toca la gráfica para ampliarla y hacer zoom</p>
+    </div>
+
+    <p class="hint">
+      Ingrese los coeficientes del sistema en las celdas y deje los campos en 0 si la
+      variable no participa en la ecuación. Cada celda acepta enteros, decimales
+      (<code>0.75</code>) o fracciones (<code>3/4</code>).
+    </p>
+
+    <div class="actions">
+      <button class="primary" id="solve">Resolver con Gauss-Jordan</button>
+      <button id="clear">Limpiar</button>
+    </div>
+    <p class="err" id="err"></p>
+
+    <details>
+      <summary>Cargar un ejemplo</summary>
+      <div class="examples" id="examples"></div>
+    </details>
+  </section>
+
+  <!-- ============ PANEL DERECHO ============ -->
+  <section>
+    <div class="toolbar">
+      <button id="prev">← Paso anterior</button>
+      <span class="counter" id="counter">Paso 0 de 0</span>
+      <button id="next">Siguiente paso →</button>
+      <label class="chk"><input type="checkbox" id="all"> Mostrar todos los pasos</label>
+    </div>
+
+    <div id="steps"></div>
+
+    <h2>Solución</h2>
+    <div id="solution"></div>
+  </section>
+</main>
+
+<footer>Aritmética exacta con fracciones · forma escalonada reducida (RREF)</footer>
+
+<div class="graph-modal-backdrop" id="graphModal">
+  <div class="graph-modal-box">
+    <div class="graph-modal-bar">
+      <span>Gráfica del sistema (2×2)</span>
+      <div class="graph-modal-controls">
+        <button id="gmZoomOut" title="Alejar">−</button>
+        <button id="gmZoomReset" title="Restablecer">100%</button>
+        <button id="gmZoomIn" title="Acercar">+</button>
+        <button id="gmClose" title="Cerrar">✕</button>
+      </div>
+    </div>
+    <div class="graph-modal-viewport" id="graphModalViewport">
+      <div class="graph-modal-inner" id="graphModalInner"></div>
+    </div>
+    <p class="graph-modal-tip">Rueda del mouse para hacer zoom · arrastra para moverte</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1. FRACCIONES — aritmética exacta (nada de errores de punto flotante)
+   ============================================================ */
+const gcd = (a,b)=>{ a=Math.abs(a); b=Math.abs(b); while(b){[a,b]=[b,a%b];} return a||1; };
+
+class F {
+  constructor(n, d = 1){
+    if(d === 0) throw new Error("División por cero");
+    if(d < 0){ n = -n; d = -d; }
+    const g = gcd(n, d);
+    this.n = n / g; this.d = d / g;
+  }
+  static zero(){ return new F(0); }
+  static one(){ return new F(1); }
+  add(o){ return new F(this.n*o.d + o.n*this.d, this.d*o.d); }
+  sub(o){ return new F(this.n*o.d - o.n*this.d, this.d*o.d); }
+  mul(o){ return new F(this.n*o.n, this.d*o.d); }
+  div(o){ if(o.n === 0) throw new Error("División por cero"); return new F(this.n*o.d, this.d*o.n); }
+  neg(){ return new F(-this.n, this.d); }
+  inv(){ return new F(this.d, this.n); }
+  isZero(){ return this.n === 0; }
+  isOne(){ return this.n === 1 && this.d === 1; }
+  isNeg(){ return this.n < 0; }
+  abs(){ return new F(Math.abs(this.n), this.d); }
+  toString(){ return this.d === 1 ? String(this.n) : this.n + "/" + this.d; }
+}
+
+/* Convierte "3", "-2.5", "3/4" en una fracción exacta */
+function parseF(raw){
+  const s = String(raw).trim().replace(",", ".");
+  if(s === "" ) return F.zero();
+  if(s.includes("/")){
+    const [a,b] = s.split("/");
+    const n = Number(a), d = Number(b);
+    if(!Number.isFinite(n) || !Number.isFinite(d)) throw new Error("Valor inválido: " + s);
+    return new F(n, d);
+  }
+  const v = Number(s);
+  if(!Number.isFinite(v)) throw new Error("Valor inválido: " + s);
+  if(Number.isInteger(v)) return new F(v);
+  const dec = (s.split(".")[1] || "").length;
+  return new F(Math.round(v * 10**dec), 10**dec);
+}
+
+/* ============================================================
+   2. ALGORITMO DE GAUSS-JORDAN paso a paso
+   ============================================================ */
+const copy = M => M.map(r => r.map(x => new F(x.n, x.d)));
+
+/* --- Notación de las operaciones elementales ---
+   Escala:      F2 → (3/4)F2
+   Combinación: F2 → −3F1 + F2     (coeficiente · fila pivote  +  fila destino) */
+function coef(f){
+  if(f.abs().isOne()) return f.isNeg() ? "−" : "";
+  const a = f.abs();
+  return (f.isNeg() ? "−" : "") + (a.d === 1 ? `${a}` : `(${a})`);
+}
+const opSwap = (a, b) => [`F${a} ⇔ F${b}`];
+const opScale = (row, k)     => `${coef(k) === "" ? "" : coef(k)}F${row} → F${row}`;
+const opCombo = (dst, f, piv) => `${coef(f.neg())}F${piv} + F${dst} → F${dst}`;
+
+function gaussJordan(M0){
+  const M = copy(M0);
+  const n = M.length, m = M[0].length;
+  const steps = [];
+  const push = (title, desc, ops=[], mark=null) =>
+    steps.push({ title, desc, ops, matrix: copy(M), mark });
+
+  push("Matriz inicial",
+    "Matriz aumentada inicial del sistema. Cada pivote se procesa por completo antes de " +
+    "pasar al siguiente: se ubica y normaliza a 1, y de inmediato se hacen ceros tanto " +
+    "arriba como abajo de él en su columna, hasta llegar a la forma escalonada reducida (RREF).");
+
+  const pivots = [];
+  let pr = 0;
+
+  const vars = m - 1;   // la última columna (términos independientes) nunca es columna de pivote
+  for(let col = 0; col < vars && pr < n; col++){
+    // Estrategia de selección de pivote, entre las filas restantes (pr..n-1):
+    //  1) si alguna fila ya tiene un 1 (o -1) en esta columna, esa se prefiere
+    //     como pivote (así no hay que dividir para normalizar);
+    //  2) si ninguna tiene un 1, se toma simplemente la primera fila distinta
+    //     de cero (no se compara magnitud, solo se busca que el pivote quede
+    //     en la diagonal).
+    let sel = -1;
+    for(let r = pr; r < n; r++){
+      if(M[r][col].isZero()) continue;
+      if(M[r][col].abs().isOne()){ sel = r; break; }
+    }
+    if(sel === -1){
+      for(let r = pr; r < n; r++) if(!M[r][col].isZero()){ sel = r; break; }
+    }
+    if(sel === -1) continue;                       // columna sin pivote → variable libre
+
+    if(sel !== pr){
+      [M[pr], M[sel]] = [M[sel], M[pr]];
+      const motivo = M[pr][col].isZero()
+        ? `La posición del pivote (fila ${pr+1}, columna ${col+1}) tenía un 0`
+        : `La fila ${sel+1} ya tiene un ${M[sel][col]} en la columna ${col+1}, lo cual evita tener que normalizar`;
+      push(`Intercambio de filas`,
+        `${motivo}, así que se sube esa fila intercambiándola con la fila ${pr+1}.`,
+        opSwap(pr+1, sel+1), [pr,col]);
+    }
+
+    if(!M[pr][col].isOne()){
+      const p = M[pr][col];
+      M[pr] = M[pr].map(x => x.div(p));
+      push(`Normalizar el pivote`,
+        `Se divide toda la fila entre el pivote para que quede un 1 en la posición (${pr+1}, ${col+1}).`,
+        [opScale(pr+1, p.inv())], [pr,col]);
+    }
+
+    // Ceros debajo del pivote
+    const opsDown = [];
+    for(let r = pr + 1; r < n; r++){
+      if(M[r][col].isZero()) continue;
+      const f = M[r][col];
+      M[r] = M[r].map((x,j) => x.sub(f.mul(M[pr][j])));
+      opsDown.push(opCombo(r+1, f, pr+1));
+    }
+    if(opsDown.length) push(`Ceros debajo del pivote`,
+      `Se anulan todos los elementos por debajo del pivote de la columna ${col+1}.`, opsDown, [pr,col]);
+
+    // Ceros arriba del pivote — se hace de inmediato, en el mismo pivote,
+    // en vez de esperar a terminar toda la diagonal.
+    const opsUp = [];
+    for(let r = pr - 1; r >= 0; r--){
+      if(M[r][col].isZero()) continue;
+      const f = M[r][col];
+      M[r] = M[r].map((x,j) => x.sub(f.mul(M[pr][j])));
+      opsUp.push(opCombo(r+1, f, pr+1));
+    }
+    if(opsUp.length) push(`Ceros arriba del pivote`,
+      `Se anulan los elementos por encima del pivote de la columna ${col+1}.`, opsUp, [pr,col]);
+
+    pivots.push([pr, col]);
+    pr++;
+  }
+
+  // Si alguna fila quedó como [0 0 ... 0 | c] con c ≠ 0, el sistema es
+  // inconsistente: el procedimiento se detiene aquí, sin intentar "pivotear"
+  // sobre la columna de términos independientes (eso no tiene sentido).
+  let inconsistentRow = -1;
+  for(let r = 0; r < n; r++){
+    if(M[r].slice(0, vars).every(x => x.isZero()) && !M[r][vars].isZero()){ inconsistentRow = r; break; }
+  }
+
+  if(inconsistentRow !== -1){
+    push("Sistema inconsistente",
+      `La fila ${inconsistentRow+1} quedó como 0 = ${M[inconsistentRow][vars]}, lo cual es una contradicción. ` +
+      "El sistema no tiene solución, así que el procedimiento termina aquí.");
+  } else {
+    push("Forma escalonada reducida (RREF)",
+      "La matriz ya está en su forma escalonada reducida: cada pivote es 1 y es el único " +
+      "elemento distinto de cero en su columna. De aquí se lee la solución directamente.");
+  }
+
+  return { steps, M, pivots };
+}
+
+/* ============================================================
+   3. CLASIFICACIÓN DE LA SOLUCIÓN
+   ============================================================ */
+
+/* Expresión de la variable en la columna c (fila r) en términos de las
+   variables libres — si no hay libres, es simplemente el valor constante. */
+function exprFor(M, r, vars, free){
+  let expr = M[r][vars].isZero() && free.some(j => !M[r][j].isZero()) ? "" : `${M[r][vars]}`;
+  for(const j of free){
+    const co = M[r][j];
+    if(co.isZero()) continue;
+    const t = co.neg();
+    const mag = t.abs().isOne() ? "" : `${t.abs()} `;
+    expr += (expr === "" ? (t.isNeg() ? "−" : "") : (t.isNeg() ? " − " : " + ")) + mag + varLabel(j);
+  }
+  return expr === "" ? "0" : expr;
+}
+
+function classify(M, pivots){
+  const m = M[0].length, vars = m - 1;
+  const sub = i => varLabel(i);
+
+  // ¿Fila del tipo [0 0 ... 0 | c] con c ≠ 0?
+  const badRow = M.findIndex(row => row.slice(0, vars).every(x => x.isZero()) && !row[vars].isZero());
+  if(badRow !== -1)
+    return { type:"Sin solución", html:
+      `<p>Aparece una fila de la forma <code>0 = c</code> con <code>c ≠ 0</code>, lo cual es
+       una contradicción. El sistema es <strong>inconsistente</strong>: no tiene solución.</p>
+       <p style="color:var(--muted);font-size:.9rem;margin-top:10px">
+         Rango de la matriz de coeficientes: ${pivots.length} · Rango de la matriz aumentada: ${pivots.length + 1}.
+       </p>` };
+
+  const pivotCols = pivots.map(([,c]) => c);
+  const free = [];
+  for(let j = 0; j < vars; j++) if(!pivotCols.includes(j)) free.push(j);
+  const rank = pivots.length;
+
+  // Sistema entre llaves: x_c = expr, uno por variable pivote, en orden de columna
+  const sysRows = pivots
+    .slice().sort((a,b)=>a[1]-b[1])
+    .map(([r,c]) => `<div>${sub(c)} = ${exprFor(M,r,vars,free)}</div>`).join("");
+  const sysHTML = `<div class="sysbrace">
+      <span class="brace" style="font-size:${1.3 + pivots.length*0.55}em">{</span>
+      <div class="eqs">${sysRows}</div>
+      <span class="eqnum">(1)</span>
+    </div>`;
+
+  // Viñetas: de la ecuación (fila) más abajo hacia arriba, igual que la lectura RREF
+  const bullets = pivots.slice().reverse().map(([r,c]) => {
+    const expr = exprFor(M,r,vars,free);
+    const directo = free.length === 0 || !free.some(j => !M[r][j].isZero());
+    return `<li>De la ecuación ${r+1} del sistema (1) ${directo ? "obtenemos directamente" : "obtenemos"} la variable ${sub(c)}:
+      <div class="eqline">${sub(c)} = ${expr}</div></li>`;
+  }).join("");
+
+  // Cajas "La respuesta": una por variable pivote, en orden de variable
+  const boxes = pivots
+    .slice().sort((a,b)=>a[1]-b[1])
+    .map(([r,c]) => `<div class="answer-box">${sub(c)} = ${exprFor(M,r,vars,free)}</div>`).join("");
+
+  // Vector solución general: entrada por variable pivote (expresión) o libre (ella misma)
+  const vecRows = Array.from({length: vars}, (_, j) => {
+    const piv = pivots.find(([,c]) => c === j);
+    return piv ? exprFor(M, piv[0], vars, free) : sub(j); // libre: se muestra a sí misma
+  });
+  const vecHTML = `<div class="genvec">
+      <span class="brace" style="font-size:${1.3 + vars*0.55}em">(</span>
+      <div class="eqs">${vecRows.map(v => `<div>${v}</div>`).join("")}</div>
+      <span class="brace" style="font-size:${1.3 + vars*0.55}em">)</span>
+    </div>`;
+
+  const rangoTxt = free.length === 0
+    ? `Rango de la matriz: ${rank}. El sistema tiene tantas ecuaciones independientes como incógnitas.`
+    : `Rango de la matriz: ${rank}. El sistema tiene menos ecuaciones independientes que incógnitas ` +
+      `(${vars - rank} grado(s) de libertad), por lo que quedan variable(s) libre(s): ${free.map(sub).join(", ")}.`;
+
+  const html = `
+    ${sysHTML}
+    <ul class="expl">${bullets}</ul>
+    <h3 class="sub-h">La respuesta:</h3>
+    <div class="answer-grid">${boxes}</div>
+    <h3 class="sub-h">La solución general:</h3>
+    <div class="genvec-row"><span>X = </span>${vecHTML}</div>
+    <p class="rank-note">${rangoTxt}</p>`;
+
+  return { type: free.length === 0 ? "Solución única" : "Infinitas soluciones", html };
+}
+
+/* ============================================================
+   4. INTERFAZ
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let cells = [], steps = [], idx = 0;
+let lastGraphSVG = "";
+
+const VARLETTERS = ["x","y","z","w","v","u","t","s"];
+const varLabel = j => VARLETTERS[j] || `x<sub>${j+1}</sub>`;
+
+function focusCell(i, j){
+  if(cells[i] && cells[i][j]){ cells[i][j].focus(); }
+}
+
+function makeCellInput(i, j, cols, value, isIndep){
+  const inp = document.createElement("input");
+  inp.className = "cell" + (isIndep ? " indep" : "");
+  inp.value = value;
+  inp.addEventListener("focus", () => inp.select());
+  inp.addEventListener("keydown", (e) => {
+    switch(e.key){
+      case "ArrowUp":
+        e.preventDefault(); focusCell(i - 1, j); break;
+      case "ArrowDown":
+      case "Enter":
+        e.preventDefault(); focusCell(i + 1, j); break;
+      case "ArrowLeft":
+        if(inp.selectionStart === 0 && inp.selectionEnd === 0){
+          e.preventDefault();
+          if(j > 0) focusCell(i, j - 1); else focusCell(i - 1, cols - 1);
+        }
+        break;
+      case "ArrowRight":
+        if(inp.selectionStart === inp.value.length && inp.selectionEnd === inp.value.length){
+          e.preventDefault();
+          if(j < cols - 1) focusCell(i, j + 1); else focusCell(i + 1, 0);
+        }
+        break;
+    }
+  });
+  return inp;
+}
+
+function buildGrid(rows, cols, data){
+  const g = $("grid");
+  g.innerHTML = "";
+  cells = [];
+  const vars = cols - 1;
+
+  const wrap = document.createElement("div");
+  wrap.className = "eqsys";
+  const brace = document.createElement("div");
+  brace.className = "brk l";
+  const eqs = document.createElement("div");
+  eqs.className = "eqsys-rows";
+  wrap.appendChild(brace);
+  wrap.appendChild(eqs);
+  g.appendChild(wrap);
+
+  for(let i = 0; i < rows; i++){
+    const row = [];
+    const rowEl = document.createElement("div");
+    rowEl.className = "eqrow";
+
+    for(let j = 0; j < vars; j++){
+      const inp = makeCellInput(i, j, cols, data ? data[i][j] : "0", false);
+      rowEl.appendChild(inp);
+      row.push(inp);
+
+      const lbl = document.createElement("span");
+      lbl.className = "var";
+      lbl.innerHTML = varLabel(j);
+      rowEl.appendChild(lbl);
+
+      if(j < vars - 1){
+        const plus = document.createElement("span");
+        plus.className = "op";
+        plus.textContent = "+";
+        rowEl.appendChild(plus);
+      }
+    }
+
+    const eqSign = document.createElement("span");
+    eqSign.className = "op eq-sign";
+    eqSign.textContent = "=";
+    rowEl.appendChild(eqSign);
+
+    const indepInp = makeCellInput(i, vars, cols, data ? data[i][vars] : "0", true);
+    rowEl.appendChild(indepInp);
+    row.push(indepInp);
+
+    eqs.appendChild(rowEl);
+    cells.push(row);
+  }
+}
+
+function matrixHTML(M, mark){
+  const m = M[0].length;
+  let rows = "";
+  M.forEach((row, i) => {
+    rows += "<tr>" + row.map((x, j) => {
+      const isPivot = mark && mark[0] === i && mark[1] === j;
+      return `<td class="${j === m-1 ? "bar" : ""}${isPivot ? " pivot" : ""}">${x}</td>`;
+    }).join("") + "</tr>";
+  });
+  return `<div class="matrix">
+      <div class="brk l"></div>
+      <table class="m">${rows}</table>
+      <div class="brk r"></div>
+    </div>`;
+}
+
+function stepHTML(s, i, total){
+  const ops = s.ops.length ? `<ul class="ops">${s.ops.map(o => `<li>${o}</li>`).join("")}</ul>` : "";
+  return `<article class="step">
+      <div class="tag">${s.title} · ${i+1} de ${total}</div>
+      ${matrixHTML(s.matrix, s.mark)}
+      ${ops}
+      <p class="desc">${s.desc}</p>
+    </article>`;
+}
+
+function render(){
+  const box = $("steps");
+  if(!steps.length){ box.innerHTML = ""; $("counter").textContent = "Paso 0 de 0"; return; }
+  if($("all").checked){
+    box.innerHTML = steps.map((s,i) => stepHTML(s, i, steps.length)).join("");
+    $("counter").textContent = `${steps.length} pasos`;
+  } else {
+    box.innerHTML = stepHTML(steps[idx], idx, steps.length);
+    $("counter").textContent = `Paso ${idx+1} de ${steps.length}`;
+  }
+  $("prev").disabled = $("all").checked || idx === 0;
+  $("next").disabled = $("all").checked || idx === steps.length - 1;
+}
+
+/* ============================================================
+   5. GRÁFICA PARA SISTEMAS 2×2
+   ============================================================ */
+const toNum = f => f.n / f.d;
+
+function niceStep(R){
+  if(R <= 6) return 1;
+  if(R <= 15) return 2;
+  if(R <= 30) return 5;
+  if(R <= 60) return 10;
+  return Math.ceil(R / 60) * 10;
+}
+
+function drawGraph(M0, resM, pivots, type){
+  const a1 = toNum(M0[0][0]), b1 = toNum(M0[0][1]), c1 = toNum(M0[0][2]);
+  const a2 = toNum(M0[1][0]), b2 = toNum(M0[1][1]), c2 = toNum(M0[1][2]);
+
+  let xF = null, yF = null, xNum = null, yNum = null;
+  if(type === "Solución única"){
+    const px = pivots.find(([,c]) => c === 0), py = pivots.find(([,c]) => c === 1);
+    if(px){ xF = resM[px[0]][2]; xNum = toNum(xF); }
+    if(py){ yF = resM[py[0]][2]; yNum = toNum(yF); }
+  }
+
+  // --- rango de la gráfica, a partir de interceptos y del punto de corte ---
+  const pts = [0];
+  if(b1 !== 0) pts.push(c1 / b1); if(a1 !== 0) pts.push(c1 / a1);
+  if(b2 !== 0) pts.push(c2 / b2); if(a2 !== 0) pts.push(c2 / a2);
+  if(xNum !== null) pts.push(xNum, yNum);
+  let R = Math.max(6, Math.ceil(Math.max(...pts.map(Math.abs)) * 1.25));
+  if(!Number.isFinite(R) || R > 500) R = 10;
+
+  const W = 340, H = 340, pad = 24;
+  const scale = (W - 2*pad) / (2*R);
+  const X = x => pad + (x + R) * scale;
+  const Y = y => H - (pad + (y + R) * scale);
+
+  // --- rejilla y ejes ---
+  const step = niceStep(R);
+  let grid = "";
+  for(let g = -Math.floor(R/step)*step; g <= R; g += step){
+    if(g === 0) continue;
+    grid += `<line x1="${X(g)}" y1="${pad}" x2="${X(g)}" y2="${H-pad}" class="gaxis" />`;
+    grid += `<line x1="${pad}" y1="${Y(g)}" x2="${W-pad}" y2="${Y(g)}" class="gaxis" />`;
+    grid += `<text x="${X(g)}" y="${Y(0)+12}" class="gtick">${g}</text>`;
+    grid += `<text x="${X(0)+4}" y="${Y(g)+3}" class="gtick">${g}</text>`;
+  }
+  const axes = `<line x1="${pad}" y1="${Y(0)}" x2="${W-pad}" y2="${Y(0)}" class="gmain"/>
+                <line x1="${X(0)}" y1="${pad}" x2="${X(0)}" y2="${H-pad}" class="gmain"/>`;
+
+  // --- las dos rectas ---
+  const lineSVG = (a, b, c, color) => {
+    if(b !== 0){
+      const y1 = (c - a*(-R)) / b, y2 = (c - a*R) / b;
+      return `<line x1="${X(-R)}" y1="${Y(y1)}" x2="${X(R)}" y2="${Y(y2)}" stroke="${color}" stroke-width="2.5"/>`;
+    } else if(a !== 0){
+      const x0 = c / a;
+      return `<line x1="${X(x0)}" y1="${Y(-R)}" x2="${X(x0)}" y2="${Y(R)}" stroke="${color}" stroke-width="2.5"/>`;
+    }
+    return "";
+  };
+  const l1 = lineSVG(a1,b1,c1,"var(--accent)");
+  const l2 = lineSVG(a2,b2,c2,"var(--line2)");
+
+  const point = (type === "Solución única" && xNum !== null && yNum !== null)
+    ? (() => {
+        const nearRight = xNum > R * 0.5;
+        const nearTop = yNum > R * 0.5;
+        const lx = nearRight ? X(xNum) - 9 : X(xNum) + 9;
+        const ly = nearTop ? Y(yNum) + 16 : Y(yNum) - 9;
+        const anchor = nearRight ? "end" : "start";
+        return `<circle cx="${X(xNum)}" cy="${Y(yNum)}" r="5" fill="var(--text)"/>
+                <text x="${lx}" y="${ly}" text-anchor="${anchor}" class="gpoint">(${xF}, ${yF})</text>`;
+      })()
+    : "";
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .gaxis{stroke:var(--border);stroke-width:1}
+        .gmain{stroke:var(--muted);stroke-width:1.5}
+        .gtick{font-size:8px;fill:var(--muted);font-family:${'monospace'}}
+        .gpoint{font-size:11px;fill:var(--text);font-family:${'monospace'};font-weight:600}
+      </style>
+      ${grid}${axes}${l1}${l2}${point}
+    </svg>`;
+  lastGraphSVG = svg;
+
+  $("graphSvg").innerHTML = svg +
+    `<div class="graph-legend">
+       <span><i style="background:var(--accent)"></i>${M0[0][0]}x + ${M0[0][1]}y = ${M0[0][2]}</span>
+       <span><i style="background:var(--line2)"></i>${M0[1][0]}x + ${M0[1][1]}y = ${M0[1][2]}</span>
+     </div>`;
+
+  const verdict = $("graphVerdict");
+  if(type === "Solución única"){
+    verdict.className = "graph-verdict ok";
+    verdict.textContent = `Sistema consistente: las rectas se cruzan en un único punto (x, y) = (${xF}, ${yF}).`;
+  } else if(type === "Infinitas soluciones"){
+    verdict.className = "graph-verdict warn";
+    verdict.textContent = `Sistema con infinitas soluciones: las dos ecuaciones representan la misma recta (son coincidentes).`;
+  } else {
+    verdict.className = "graph-verdict err";
+    verdict.textContent = `Sistema inconsistente: las rectas son paralelas y nunca se cruzan, por lo tanto no hay solución.`;
+  }
+}
+
+function solve(){
+  $("err").textContent = "";
+  try{
+    const M = cells.map(r => r.map(c => parseF(c.value)));
+    if(M[0].length < 2) throw new Error("Se necesitan al menos 2 columnas.");
+    const res = gaussJordan(M);
+    steps = res.steps; idx = 0;
+    render();
+    const c = classify(res.M, res.pivots);
+    $("solution").innerHTML =
+      `<span class="badge">${c.type}</span><div class="sol">${c.html}</div>`;
+
+    if(M.length === 2 && M[0].length === 3){
+      drawGraph(M, res.M, res.pivots, c.type);
+      $("graphPanel").style.display = "block";
+    } else {
+      $("graphPanel").style.display = "none";
+    }
+  } catch(e){
+    $("err").textContent = e.message;
+  }
+}
+
+/* ---- Ejemplos ---- */
+const EXAMPLES = [
+  { name:"Solución única (3×3)", data:[["4","3","2","1"],["1","1","1","6"],["3","4","6","3"]] },
+  { name:"Sistema 2×2 (muestra gráfica)", data:[["4","-2","8"],["3","1","2"]] },
+  { name:"Infinitas soluciones", data:[["1","2","-1","3"],["2","4","-2","6"],["3","6","-3","9"]] },
+  { name:"Sistema inconsistente", data:[["1","1","1","2"],["2","2","2","5"],["1","-1","0","1"]] },
+  { name:"Con fracciones", data:[["1/2","1/3","1"],["1/4","2/3","2"]] },
+  { name:"Sistema 4×4", data:[["2","1","-1","3","7"],["1","3","2","-1","4"],["3","-1","1","2","6"],["1","1","1","1","5"]] }
+];
+
+$("examples").innerHTML = EXAMPLES.map((e,i) => `<button data-i="${i}">${e.name}</button>`).join("");
+$("examples").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if(!b) return;
+  const ex = EXAMPLES[+b.dataset.i];
+  $("rows").value = ex.data.length; $("cols").value = ex.data[0].length - 1;   // incógnitas (sin el término independiente)
+  buildGrid(ex.data.length, ex.data[0].length, ex.data);
+  solve();
+});
+
+/* ---- Eventos ---- */
+$("gen").onclick = () => {
+  const r = Math.max(1, Math.min(8, +$("rows").value || 3));
+  const v = Math.max(1, Math.min(8, +$("cols").value || 3));   // número de incógnitas
+  const c = v + 1;                                             // + columna de términos independientes
+  $("rows").value = r; $("cols").value = v;
+  buildGrid(r, c);
+  $("graphPanel").style.display = "none";
+};
+$("solve").onclick = solve;
+$("clear").onclick = () => {
+  cells.flat().forEach(c => c.value = "0");
+  steps = []; $("steps").innerHTML = ""; $("solution").innerHTML = ""; $("counter").textContent = "Paso 0 de 0";
+  $("graphPanel").style.display = "none";
+};
+$("prev").onclick = () => { if(idx > 0){ idx--; render(); } };
+$("next").onclick = () => { if(idx < steps.length - 1){ idx++; render(); } };
+$("all").onchange = render;
+$("theme").onclick = () => {
+  const dark = getComputedStyle(document.body).backgroundColor === "rgb(20, 23, 28)";
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+};
+document.addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT") return;
+  if(e.key === "ArrowRight") $("next").click();
+  if(e.key === "ArrowLeft")  $("prev").click();
+});
+
+/* ---- Modal de zoom para la gráfica 2×2 ---- */
+let gmScale = 1, gmX = 0, gmY = 0, gmDragging = false, gmStartX = 0, gmStartY = 0;
+
+function gmApply(){
+  $("graphModalInner").style.transform = `translate(${gmX}px, ${gmY}px) scale(${gmScale})`;
+  $("gmZoomReset").textContent = Math.round(gmScale * 100) + "%";
+}
+function gmReset(){ gmScale = 1; gmX = 0; gmY = 0; gmApply(); }
+function openGraphModal(){
+  if(!lastGraphSVG) return;
+  $("graphModalInner").innerHTML = lastGraphSVG;
+  gmReset();
+  $("graphModal").classList.add("open");
+}
+function closeGraphModal(){ $("graphModal").classList.remove("open"); }
+
+$("graphPanel").addEventListener("click", (e) => {
+  if(e.target.closest("svg")) openGraphModal();
+});
+$("gmClose").onclick = closeGraphModal;
+$("graphModal").addEventListener("click", (e) => { if(e.target.id === "graphModal") closeGraphModal(); });
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape" && $("graphModal").classList.contains("open")) closeGraphModal();
+});
+
+$("gmZoomIn").onclick = () => { gmScale = Math.min(6, gmScale * 1.3); gmApply(); };
+$("gmZoomOut").onclick = () => { gmScale = Math.max(0.5, gmScale / 1.3); gmApply(); };
+$("gmZoomReset").onclick = gmReset;
+
+const gmViewport = $("graphModalViewport");
+gmViewport.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+  gmScale = Math.min(6, Math.max(0.5, gmScale * factor));
+  gmApply();
+}, { passive: false });
+
+gmViewport.addEventListener("pointerdown", (e) => {
+  gmDragging = true;
+  gmViewport.classList.add("dragging");
+  gmStartX = e.clientX - gmX; gmStartY = e.clientY - gmY;
+  gmViewport.setPointerCapture(e.pointerId);
+});
+gmViewport.addEventListener("pointermove", (e) => {
+  if(!gmDragging) return;
+  gmX = e.clientX - gmStartX; gmY = e.clientY - gmStartY;
+  gmApply();
+});
+const gmStopDrag = () => { gmDragging = false; gmViewport.classList.remove("dragging"); };
+gmViewport.addEventListener("pointerup", gmStopDrag);
+gmViewport.addEventListener("pointercancel", gmStopDrag);
+
+/* ---- Arranque ---- */
+buildGrid(3, 4, EXAMPLES[0].data);
+solve();
+</script>
+</body>
+</html>
