@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gauss-Jordan · Cuaderno de procedimiento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous" />
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">⌐</span>
+    <div class="brand-text">
+      <h1>Gauss-Jordan</h1>
+      <p class="brand-sub">cuaderno de procedimiento</p>
+    </div>
+  </div>
+  <button id="theme-toggle" class="icon-btn" type="button" aria-label="Cambiar entre modo claro y oscuro">
+    <span id="theme-icon">☾</span>
+  </button>
+</header>
+
+<main class="layout">
+
+  <!-- ============ PANEL DE ENTRADA ============ -->
+  <section class="panel panel-input" aria-labelledby="input-heading">
+    <h2 id="input-heading">1. Matriz aumentada</h2>
+
+    <div class="size-controls">
+      <label>
+        Filas
+        <input type="number" id="rows-input" min="1" max="8" value="3" />
+      </label>
+      <label>
+        Columnas
+        <span class="hint">(incluye términos independientes)</span>
+        <input type="number" id="cols-input" min="2" max="9" value="4" />
+      </label>
+      <button id="generate-grid-btn" class="btn btn-secondary" type="button">Generar cuadrícula</button>
+    </div>
+
+    <div id="matrix-grid-wrapper" class="matrix-grid-wrapper">
+      <div id="matrix-grid" class="matrix-grid" role="group" aria-label="Celdas de la matriz aumentada"></div>
+    </div>
+
+    <p class="field-note">
+      Cada celda acepta enteros, decimales (<code>0.75</code>) o fracciones (<code>3/4</code>).
+      La última columna se trata como el vector de términos independientes.
+    </p>
+
+    <div class="action-row">
+      <button id="solve-btn" class="btn btn-primary" type="button">Resolver con Gauss-Jordan</button>
+      <button id="clear-btn" class="btn btn-ghost" type="button">Limpiar</button>
+    </div>
+
+    <div id="input-error" class="error-box" hidden></div>
+
+    <details class="examples">
+      <summary>Cargar un ejemplo</summary>
+      <div class="example-buttons">
+        <button class="btn btn-chip" data-example="unique" type="button">Solución única</button>
+        <button class="btn btn-chip" data-example="swap" type="button">Requiere intercambio</button>
+        <button class="btn btn-chip" data-example="fractions" type="button">Con fracciones</button>
+        <button class="btn btn-chip" data-example="infinite" type="button">Infinitas soluciones</button>
+        <button class="btn btn-chip" data-example="none" type="button">Incompatible</button>
+        <button class="btn btn-chip" data-example="rectangular" type="button">Rectangular</button>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ PANEL DE PROCEDIMIENTO ============ -->
+  <section class="panel panel-procedure" aria-labelledby="procedure-heading">
+    <h2 id="procedure-heading">2. Procedimiento</h2>
+
+    <div id="procedure-empty" class="empty-state">
+      Genera una matriz e ingresa valores para ver aquí el procedimiento paso a paso.
+    </div>
+
+    <div id="procedure-content" hidden>
+
+      <div class="step-toolbar">
+        <div class="step-toolbar-left">
+          <button id="prev-step-btn" class="btn btn-secondary" type="button">← Paso anterior</button>
+          <span id="step-label" class="step-label">Paso 1 de 1</span>
+          <button id="next-step-btn" class="btn btn-secondary" type="button">Siguiente paso →</button>
+        </div>
+        <label class="toggle-all">
+          <input type="checkbox" id="show-all-toggle" />
+          Mostrar todos los pasos
+        </label>
+      </div>
+
+      <div id="steps-container" class="steps-container"></div>
+
+      <div id="solution-panel" class="solution-panel"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <p>Herramienta académica de código abierto para practicar el método de Gauss-Jordan. Cálculo hecho con aritmética racional exacta: sin errores de redondeo.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script src="fraction.js"></script>
+<script src="gaussJordan.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
